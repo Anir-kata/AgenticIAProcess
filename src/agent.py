@@ -39,12 +39,13 @@ class TaskAgent:
 
     def _normalize_tasks(self, tasks):
         normalized = []
+        active_statuses = {"late", "todo", "pending", "overdue"}
         for task in tasks:
             name = str(task.get("name", "")).strip()
             if not name:
                 continue
             status = str(task.get("status", "")).strip().lower()
-            if status == "late":
+            if status in active_statuses:
                 normalized.append({
                     "name": name,
                     "priority": int(task.get("priority", 0) or 0),

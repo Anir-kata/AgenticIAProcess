@@ -84,3 +84,30 @@ def test_task_agent_persists_memory_between_runs(tmp_path):
 
 	assert "Alpha" in result["memory"]["completed"]
 	assert "Gamma" in result["memory"]["pending"]
+
+
+def test_task_agent_runs_autonomous_cycles_until_queue_is_empty():
+	agent = TaskAgent()
+	result = agent.run([
+		{"name": "Review", "status": "late", "priority": 2},
+		{"name": "Deploy", "status": "late", "priority": 9},
+		{"name": "Cleanup", "status": "late", "priority": 5}
+	])
+
+	assert result["status"] == "done"
+	assert result["summary"]["pending"] == []
+	assert result["summary"]["completed"] == ["Deploy", "Cleanup", "Review"]
+	assert result["cycles"] >= 1
+
+
+def test_task_agent_accepts_common_task_status_aliases():
+	agent = TaskAgent()
+	result = agent.run([
+		{"name": "Backlog", "status": "todo"},
+		{"name": "Blocked", "status": "OVERDUE"},
+		{"name": "Done Item", "status": "done"}
+	])
+
+	assert "Backlog" in result["observation"]["late_tasks"]
+	assert "Blocked" in result["observation"]["late_tasks"]
+	assert "Done Item" not in result["observation"]["late_tasks"]
