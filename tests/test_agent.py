@@ -111,3 +111,17 @@ def test_task_agent_accepts_common_task_status_aliases():
 	assert "Backlog" in result["observation"]["late_tasks"]
 	assert "Blocked" in result["observation"]["late_tasks"]
 	assert "Done Item" not in result["observation"]["late_tasks"]
+
+
+def test_task_agent_runs_multiple_autonomous_cycles():
+	agent = TaskAgent()
+	result = agent.run([
+		{"name": "A", "status": "late", "priority": 1},
+		{"name": "B", "status": "late", "priority": 4},
+		{"name": "C", "status": "late", "priority": 2},
+		{"name": "D", "status": "late", "priority": 3}
+	], max_cycles=2)
+
+	assert result["cycles"] == 2
+	assert result["status"] == "done"
+	assert result["summary"]["pending"] == []

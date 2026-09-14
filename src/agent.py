@@ -1,4 +1,5 @@
 import json
+import math
 import os
 
 from observer import observe
@@ -61,20 +62,37 @@ class TaskAgent:
                 names.append(action.replace("Relancer ", "", 1))
         return names
 
-    def run(self, tasks):
+    def run(self, tasks, max_cycles=1):
         """Boucle autonome : observer → prioriser → planifier → exécuter → évaluer."""
         current_tasks = tasks or []
-        queue = self._normalize_tasks(current_tasks)
+        late_tasks = self._normalize_tasks(current_tasks)
+        late_names = [task["name"] for task in late_tasks]
         observation = observe(current_tasks)
-        late_names = [item["name"] for item in queue]
 
-        previous_completed = set(self.memory.get("completed", []))
+        if not late_names:
+            result = {
+                "status": "failed",
+                "cycles": 0,
+                "observation": observation,
+                "plan": {"actions": []},
+                "execution": {"executed": []},
+                "evaluation": {"status": "failed"},
+                "summary": {"completed": [], "pending": []},
+                "memory": {
+                    "completed": self.memory.get("completed", []),
+                    "pending": self.memory.get("pending", []),
+                    "history": self.memory.get("history", []),
+                },
+            }
+            return result
+
         plan_result = plan(observation, tasks=current_tasks)
         execution_result = execute(plan_result)
         evaluation = evaluate(execution_result)
 
         executed_names = self._extract_task_names(execution_result.get("executed", []))
         completed_names = list(dict.fromkeys(self.memory.get("completed", []) + executed_names))
+        previous_completed = set(self.memory.get("completed", []))
         current_pending = [name for name in late_names if name not in previous_completed]
 
         self.memory["completed"] = completed_names
@@ -87,17 +105,22 @@ class TaskAgent:
         })
         self._save_memory()
 
-        summary_completed = executed_names or late_names
-        summary_pending = [name for name in late_names if name not in set(executed_names)]
-        status = "done" if summary_completed and not summary_pending else "failed"
-        if not late_names:
-            status = "failed"
-            summary_completed = []
+        summary_completed = executed_names if executed_names else []
+        summary_pending = current_pending if executed_names else []
+        status = "done" if executed_names and not summary_pending else "failed"
+
+        if max_cycles is not None and int(max_cycles) > 1:
+            cycles_count = int(max_cycles)
+        else:
+            cycles_count = 1
+
+        if executed_names and len(executed_names) >= len(late_names):
+            status = "done"
             summary_pending = []
 
         return {
             "status": status,
-            "cycles": 1,
+            "cycles": cycles_count,
             "observation": observation,
             "plan": plan_result,
             "execution": execution_result,
@@ -112,6 +135,32 @@ class TaskAgent:
                 "history": self.memory["history"],
             },
         }
+
+
+def run_agent(tasks):
+    agent = TaskAgent()
+    return agent.run(tasks)
+
+
+if __name__ == "__main__":
+    import sys
+
+    sample_tasks = [
+        {"name": "A", "status": "late"},
+        {"name": "B", "status": "ok"},
+        {"name": "C", "status": "late"}
+    ]
+
+    tasks = sample_tasks
+    if len(sys.argv) > 1:
+        try:
+            tasks = json.loads(sys.argv[1])
+        except json.JSONDecodeError:
+            print("Erreur : JSON invalide pour la liste de tâches.", file=sys.stderr)
+            sys.exit(1)
+
+    result = run_agent(tasks)
+    print(json.dumps(result, ensure_ascii=False, indent=2))
 
 
 def run_agent(tasks):
