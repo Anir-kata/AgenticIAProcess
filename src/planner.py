@@ -6,14 +6,20 @@ client = OpenAI(
     api_key="ollama"
 )
 
-def plan(observation):
 
+def _fallback_actions(late_tasks):
+    return [f"Relancer {task_name}" for task_name in sorted(late_tasks)]
+
+
+def plan(observation):
     """
     Génère un plan d'action à partir de l'observation.
-    Ici : relancer toutes les tâches en retard.
+    Si le service de planification est indisponible, on revient à une logique
+    déterministe qui relance les tâches en retard dans l'ordre alphabétique.
     """
-    
+
     late_tasks = sorted(observation.get("late_tasks", set()))
+    expected_actions = _fallback_actions(late_tasks)
     prompt = f"""
     Tu es un agent IA chargé de gérer des tâches en retard.
     Tâches en retard : {late_tasks}
@@ -22,24 +28,27 @@ def plan(observation):
     Remplace A et C par les noms réels des tâches. Il ne faut pas avoir de doublons.
     """
 
-    response = client.chat.completions.create(
-        model="llama3.2",
-        messages=[
-            {"role": "system", "content": "Tu es un planificateur IA."},
-            {"role": "user", "content": prompt}
-        ],
-        response_format={"type": "json_object"}
-    )
-    
-    expected_actions = [f"Relancer {task_name}" for task_name in late_tasks]
-
+    generated_actions = []
     try:
+        response = client.chat.completions.create(
+            model="llama3.2",
+            messages=[
+                {"role": "system", "content": "Tu es un planificateur IA."},
+                {"role": "user", "content": prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
         plan_json = json.loads(response.choices[0].message.content)
-        generated_actions = plan_json.get("actions", [])
-    except (json.JSONDecodeError, AttributeError):
+        raw_actions = plan_json.get("actions", [])
+
+        seen = set()
+        for action in raw_actions:
+            if isinstance(action, str) and action not in seen:
+                seen.add(action)
+                generated_actions.append(action)
+    except Exception:
         generated_actions = []
 
-    generated_actions = set(generated_actions)
     actions = [
         action for action in expected_actions
         if action in generated_actions
