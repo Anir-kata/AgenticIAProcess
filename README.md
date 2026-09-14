@@ -1,8 +1,8 @@
 # AgenticIAProcess
 
-Version actuelle : 0.1.2
+Version actuelle : 0.1.3
 
-Projet minimal d'agent IA orienté gestion de tâches. Il observe les tâches en retard, construit un plan de relance, exécute les actions et évalue le résultat.
+Projet d'agent IA orienté gestion de tâches. Il observe les tâches en retard, construit un plan de relance, exécute les actions et évalue le résultat via une classe réutilisable `TaskAgent`.
 
 ## Fonctionnement
 

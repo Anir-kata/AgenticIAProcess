@@ -3,23 +3,29 @@ from planner import plan
 from executor import execute
 from evaluator import evaluate
 
+
+class TaskAgent:
+    """Agent IA simple pour traiter une liste de tâches."""
+
+    def run(self, tasks):
+        """Boucle agentique complète : Observer → Planifier → Exécuter → Évaluer."""
+        observation = observe(tasks)
+        plan_result = plan(observation)
+        execution_result = execute(plan_result)
+        evaluation = evaluate(execution_result)
+
+        return {
+            "observation": observation,
+            "plan": plan_result,
+            "execution": execution_result,
+            "evaluation": evaluation,
+        }
+
+
 def run_agent(tasks):
-    """
-    Boucle agentique complète :
-    Observer → Planifier → Exécuter → Évaluer
-    """
+    agent = TaskAgent()
+    return agent.run(tasks)
 
-    observation = observe(tasks)
-    plan_result = plan(observation)
-    execution_result = execute(plan_result)
-    evaluation = evaluate(execution_result)
-
-    return {
-        "observation": observation,
-        "plan": plan_result,
-        "execution": execution_result,
-        "evaluation": evaluation
-    }
 
 if __name__ == "__main__":
     tasks = [

@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from agent import run_agent
+from agent import TaskAgent, run_agent
 
 
 def test_run_agent_completes_workflow():
@@ -16,4 +16,18 @@ def test_run_agent_completes_workflow():
 	assert result["observation"] == {"late_tasks": {"A"}}
 	assert result["plan"] == {"actions": ["Relancer A"]}
 	assert result["execution"] == {"executed": ["Relancer A"]}
+	assert result["evaluation"] == {"status": "done"}
+
+
+def test_task_agent_executes_generic_task_list():
+	agent = TaskAgent()
+	result = agent.run([
+		{"name": "Task 1", "status": "late"},
+		{"name": "Task 2", "status": "ok"},
+		{"name": "Task 3", "status": "late"}
+	])
+
+	assert result["observation"] == {"late_tasks": {"Task 1", "Task 3"}}
+	assert result["plan"] == {"actions": ["Relancer Task 1", "Relancer Task 3"]}
+	assert result["execution"] == {"executed": ["Relancer Task 1", "Relancer Task 3"]}
 	assert result["evaluation"] == {"status": "done"}
