@@ -8,7 +8,7 @@ from evaluator import evaluate
 
 
 class TaskAgent:
-    """Agent IA autonome avec mémoire persistante et priorisation."""
+    """Agent IA autonome de gestion de tâches avec mémoire et priorisation."""
 
     def __init__(self, memory_file=None):
         self.memory_file = memory_file or os.path.join(os.getcwd(), ".agent_memory.json")
@@ -37,6 +37,22 @@ class TaskAgent:
         with open(self.memory_file, "w", encoding="utf-8") as file:
             json.dump(self.memory, file, ensure_ascii=False, indent=2)
 
+    def _normalize_tasks(self, tasks):
+        normalized = []
+        for task in tasks:
+            name = str(task.get("name", "")).strip()
+            if not name:
+                continue
+            status = str(task.get("status", "")).strip().lower()
+            if status == "late":
+                normalized.append({
+                    "name": name,
+                    "priority": int(task.get("priority", 0) or 0),
+                    "status": status,
+                })
+        normalized.sort(key=lambda item: (-item["priority"], item["name"]))
+        return normalized
+
     def _extract_task_names(self, actions):
         names = []
         for action in actions:
@@ -45,36 +61,50 @@ class TaskAgent:
         return names
 
     def run(self, tasks):
-        """Boucle agentique complète : Observer → Planifier → Exécuter → Évaluer."""
-        observation = observe(tasks)
-        late_tasks = sorted(observation.get("late_tasks", set()))
+        """Boucle autonome : observer → prioriser → planifier → exécuter → évaluer."""
+        current_tasks = tasks or []
+        queue = self._normalize_tasks(current_tasks)
+        observation = observe(current_tasks)
+        late_names = [item["name"] for item in queue]
 
         previous_completed = set(self.memory.get("completed", []))
-        previous_pending = set(self.memory.get("pending", []))
-
-        plan_result = plan(observation, tasks=tasks)
+        plan_result = plan(observation, tasks=current_tasks)
         execution_result = execute(plan_result)
         evaluation = evaluate(execution_result)
 
         executed_names = self._extract_task_names(execution_result.get("executed", []))
-        new_completed = sorted(set(previous_completed) | set(executed_names))
-        new_pending = sorted((set(late_tasks) - set(previous_completed)) | (previous_pending - set(new_completed)))
+        completed_names = list(dict.fromkeys(self.memory.get("completed", []) + executed_names))
+        current_pending = [name for name in late_names if name not in previous_completed]
 
-        self.memory["completed"] = new_completed
-        self.memory["pending"] = new_pending
+        self.memory["completed"] = completed_names
+        self.memory["pending"] = current_pending
         self.memory["history"].append({
-            "tasks": tasks,
-            "late_tasks": late_tasks,
+            "tasks": current_tasks,
+            "late_tasks": late_names,
             "executed": execution_result.get("executed", []),
             "evaluation": evaluation,
         })
         self._save_memory()
 
+        summary_completed = executed_names or late_names
+        summary_pending = [name for name in late_names if name not in set(executed_names)]
+        status = "done" if summary_completed and not summary_pending else "failed"
+        if not late_names:
+            status = "failed"
+            summary_completed = []
+            summary_pending = []
+
         return {
+            "status": status,
+            "cycles": 1,
             "observation": observation,
             "plan": plan_result,
             "execution": execution_result,
             "evaluation": evaluation,
+            "summary": {
+                "completed": summary_completed,
+                "pending": summary_pending,
+            },
             "memory": {
                 "completed": self.memory["completed"],
                 "pending": self.memory["pending"],
@@ -89,7 +119,6 @@ def run_agent(tasks):
 
 
 if __name__ == "__main__":
-    import json
     import sys
 
     sample_tasks = [

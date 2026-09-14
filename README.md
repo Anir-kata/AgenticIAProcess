@@ -1,8 +1,8 @@
 # AgenticIAProcess
 
-Version actuelle : 0.1.4
+Version actuelle : 0.1.5
 
-Projet d'agent IA autonome orienté gestion de tâches. Il observe les tâches en retard, priorise les actions selon la priorité, mémorise les tâches déjà accomplies et garde un historique de l'exécution.
+Projet d'agent IA autonome orienté gestion de tâches. Il observe les tâches en retard, priorise les actions selon la priorité, mémorise les tâches déjà accomplies, conserve la file d'attente et produit un cycle de vie explicite d'agent.
 
 ## Fonctionnement
 
