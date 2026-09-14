@@ -1,3 +1,4 @@
+import json
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
@@ -125,3 +126,12 @@ def test_task_agent_runs_multiple_autonomous_cycles():
 	assert result["cycles"] == 2
 	assert result["status"] == "done"
 	assert result["summary"]["pending"] == []
+
+
+def test_run_agent_result_is_json_serializable():
+	result = run_agent([
+		{"name": "Alpha", "status": "late"},
+		{"name": "Beta", "status": "ok"}
+	])
+
+	json.dumps(result)

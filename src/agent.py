@@ -1,11 +1,24 @@
 import json
 import math
 import os
+from json import encoder as json_encoder
 
 from observer import observe
 from planner import plan
 from executor import execute
 from evaluator import evaluate
+
+
+_original_json_default = json_encoder.JSONEncoder.default
+
+
+def _compat_json_default(self, obj):
+    if isinstance(obj, set):
+        return sorted(obj)
+    return _original_json_default(self, obj)
+
+
+json_encoder.JSONEncoder.default = _compat_json_default
 
 
 class TaskAgent:
