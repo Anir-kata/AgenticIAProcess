@@ -8,17 +8,27 @@ client = OpenAI(
 
 
 def _fallback_actions(late_tasks):
-    return [f"Relancer {task_name}" for task_name in sorted(late_tasks)]
+    return [f"Relancer {task_name}" for task_name in late_tasks]
 
 
-def plan(observation):
+def plan(observation, tasks=None):
     """
     Génère un plan d'action à partir de l'observation.
     Si le service de planification est indisponible, on revient à une logique
-    déterministe qui relance les tâches en retard dans l'ordre alphabétique.
+    déterministe avec priorisation par priorité si elle est fournie.
     """
 
-    late_tasks = sorted(observation.get("late_tasks", set()))
+    late_tasks = list(observation.get("late_tasks", set()))
+    if tasks is not None:
+        priorities = {}
+        for task in tasks:
+            name = str(task.get("name", "")).strip()
+            if name:
+                priorities[name] = task.get("priority", 0)
+        late_tasks = sorted(late_tasks, key=lambda name: (-int(priorities.get(name, 0) or 0), name))
+    else:
+        late_tasks = sorted(late_tasks)
+
     expected_actions = _fallback_actions(late_tasks)
     prompt = f"""
     Tu es un agent IA chargé de gérer des tâches en retard.

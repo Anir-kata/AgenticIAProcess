@@ -1,14 +1,16 @@
 # AgenticIAProcess
 
-Version actuelle : 0.1.3
+Version actuelle : 0.1.4
 
-Projet d'agent IA orienté gestion de tâches. Il observe les tâches en retard, construit un plan de relance, exécute les actions et évalue le résultat via une classe réutilisable `TaskAgent`.
+Projet d'agent IA autonome orienté gestion de tâches. Il observe les tâches en retard, priorise les actions selon la priorité, mémorise les tâches déjà accomplies et garde un historique de l'exécution.
 
 ## Fonctionnement
 
 - Observer : détecte les tâches avec le statut `late`
-- Planifier : génère les actions de relance
+- Prioriser : trie les tâches en retard par priorité décroissante
+- Planifier : génère un plan de relance
 - Exécuter : simule l'exécution des actions
+- Mémoriser : conserve l'historique et les tâches déjà traitées
 - Évaluer : vérifie qu'au moins une action a bien été exécutée
 
 ## Exécution
@@ -22,5 +24,3 @@ python src/agent.py
 ```bash
 python -m pytest -q
 ```
-
-Le planificateur utilise un retour de secours déterministe si le service Ollama n'est pas disponible, afin de garder le comportement stable et testable.

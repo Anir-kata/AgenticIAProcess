@@ -55,3 +55,32 @@ def test_task_agent_accepts_case_insensitive_status():
 
 	assert result["observation"] == {"late_tasks": {"Urgent"}}
 	assert result["plan"] == {"actions": ["Relancer Urgent"]}
+
+
+def test_task_agent_prioritizes_high_priority_tasks():
+	agent = TaskAgent()
+	result = agent.run([
+		{"name": "Low", "status": "late", "priority": 1},
+		{"name": "High", "status": "late", "priority": 9},
+		{"name": "Normal", "status": "ok", "priority": 3}
+	])
+
+	assert result["plan"] == {"actions": ["Relancer High", "Relancer Low"]}
+
+
+def test_task_agent_persists_memory_between_runs(tmp_path):
+	memory_file = tmp_path / "agent_memory.json"
+	first_agent = TaskAgent(memory_file=str(memory_file))
+	first_agent.run([
+		{"name": "Alpha", "status": "late"},
+		{"name": "Beta", "status": "ok"}
+	])
+
+	second_agent = TaskAgent(memory_file=str(memory_file))
+	result = second_agent.run([
+		{"name": "Alpha", "status": "late"},
+		{"name": "Gamma", "status": "late"}
+	])
+
+	assert "Alpha" in result["memory"]["completed"]
+	assert "Gamma" in result["memory"]["pending"]
