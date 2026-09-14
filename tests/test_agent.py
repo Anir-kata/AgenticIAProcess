@@ -31,3 +31,27 @@ def test_task_agent_executes_generic_task_list():
 	assert result["plan"] == {"actions": ["Relancer Task 1", "Relancer Task 3"]}
 	assert result["execution"] == {"executed": ["Relancer Task 1", "Relancer Task 3"]}
 	assert result["evaluation"] == {"status": "done"}
+
+
+def test_task_agent_handles_no_late_tasks():
+	agent = TaskAgent()
+	result = agent.run([
+		{"name": "Alpha", "status": "ok"},
+		{"name": "Beta", "status": "done"}
+	])
+
+	assert result["observation"] == {"late_tasks": set()}
+	assert result["plan"] == {"actions": []}
+	assert result["execution"] == {"executed": []}
+	assert result["evaluation"] == {"status": "failed"}
+
+
+def test_task_agent_accepts_case_insensitive_status():
+	agent = TaskAgent()
+	result = agent.run([
+		{"name": "Urgent", "status": "LATE"},
+		{"name": "Normal", "status": "OK"}
+	])
+
+	assert result["observation"] == {"late_tasks": {"Urgent"}}
+	assert result["plan"] == {"actions": ["Relancer Urgent"]}

@@ -28,11 +28,22 @@ def run_agent(tasks):
 
 
 if __name__ == "__main__":
-    tasks = [
+    import json
+    import sys
+
+    sample_tasks = [
         {"name": "A", "status": "late"},
         {"name": "B", "status": "ok"},
         {"name": "C", "status": "late"}
     ]
 
+    tasks = sample_tasks
+    if len(sys.argv) > 1:
+        try:
+            tasks = json.loads(sys.argv[1])
+        except json.JSONDecodeError:
+            print("Erreur : JSON invalide pour la liste de tâches.", file=sys.stderr)
+            sys.exit(1)
+
     result = run_agent(tasks)
-    print(result)
+    print(json.dumps(result, ensure_ascii=False, indent=2))

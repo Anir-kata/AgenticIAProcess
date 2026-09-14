@@ -12,8 +12,9 @@ def observe(tasks):
     """
     late_tasks = set()
     for t in tasks:
-        if t["status"] == "late":
-            late_tasks.add(t["name"])
+        status = str(t.get("status", "")).strip().lower()
+        if status == "late":
+            late_tasks.add(str(t.get("name", "")))
 
     return {
         "late_tasks": late_tasks
